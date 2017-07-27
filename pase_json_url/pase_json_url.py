@@ -6,7 +6,8 @@ import json
 import ssl
 
 
-ssl._create_default_https_context = ssl._create_unverified_context  # close the SSL verification
+# close the SSL verification
+ssl._create_default_https_context = ssl._create_unverified_context
 
 f = open("out.txt", "w")
 url = 'https://atlas.ripe.net/api/v2/measurements/8552181/results/?start=1494201600&stop=1495756799&format=json'
