@@ -9,13 +9,12 @@ Author : Davey@BII
 import json
 import sys
 import urllib
+import urllib2
 import gc
 import ssl
 
-
 # close the SSL verification
 ssl._create_default_https_context = ssl._create_unverified_context
-
 
 # constant definition
 
@@ -52,6 +51,7 @@ udp_measurement_set = [
 # variable definition
 Size_con = {}
 Size_fail = {}
+
 
 # Class definition
 # measurement for one server
@@ -118,6 +118,7 @@ class Measurement:
                 self.weak_probes_list.append(i)
         return len(self.weak_probes_list)
 
+
 # Function definition
 
 
@@ -125,7 +126,7 @@ def build_measure(data, m):
     for p in data:
         # if not(m.probe_info.has_key(p["prb_id"])): #has_key is the function
         # of dict in python2
-        if not(p["prb_id"] in m.probe_info):
+        if not (p["prb_id"] in m.probe_info):
             # initialize the probe address in the dict
             m.probe_info[p["prb_id"]] = {"src_addr": [
                 p["from"]], "num_conn": 1, "num_failure": 0}
@@ -189,16 +190,30 @@ def build_measure(data, m):
 
 
 def parse_print(url):
+    timeout = 3
     print "start to parse ", url
-    json_file= urllib.urlopen(url).read()
-
-        # json.load() convert json string to python type
-        data = json.load(json_file)
-        if data[0]["proto"] == "TCP":
-            print "Error : TCP was found"
-            return
+    while timeout > 0:
+        try:
+            json_file = urllib2.urlopen(url).read()
+        except urllib2.HTTPError as e:
+            print 'HTTPError'
+            print 'Error code: ', e.code
+            print 'Error reason: ', e.reason
+        except urllib2.URLError as e:
+            print 'URLError'
+            print 'Error reason: ', e.reason
         else:
-            print "start to parse ", data[0]["msm_id"], data[0]["dst_addr"]
+            break
+        timeout = timeout - 1
+    if timeout < 0:
+        return
+    # json.load() convert json string to python type
+    data = json.loads(json_file)
+    if data[0]["proto"] == "TCP":
+        print "Error : TCP was found"
+        return
+    else:
+        print "start to parse ", data[0]["msm_id"], data[0]["dst_addr"]
     m = Measurement(data[0]["msm_id"])
     build_measure(data, m)  # convert raw data into measure format
     m.find_weak_prob()
@@ -225,6 +240,8 @@ def parse_print(url):
         t = t + Interval
     size_all.pop(0)
     size_timeout.pop(0)
+    print size_all
+    print size_timeout
     # print size_all, size_timeout
     for i in size_all:
         print "Failure rate (", i, ") : ", float(size_timeout[i]) / float(size_all[i])
@@ -232,6 +249,7 @@ def parse_print(url):
     print "the number of weak probe: ", len(m.weak_probes_list)
     del m, data, json_file
     gc.collect()
+
 
 # Main definition
 

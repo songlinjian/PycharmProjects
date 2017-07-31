@@ -17,7 +17,7 @@ import gc
 
 START = 1494219600
 END = 1495756799
-Intervel = 7200
+Interval = 7200
 Size_con = {}
 Size_fail = {}
 # Class definition
@@ -145,7 +145,7 @@ def parse_print(path):
     size_timeout = {}
     while t < END:
         rate, size, num_all, num_timeout, probe_set = m.failure_rate(
-            t, t + Intervel)
+            t, t + Interval)
         if size_all.has_key(size):
             size_all[size] += num_all
             size_timeout[size] += num_timeout
@@ -159,7 +159,7 @@ def parse_print(path):
             Size_con[size] = num_all
             Size_fail[size] = num_timeout
         # print size , rate , datetime.fromtimestamp(t)
-        t = t + Intervel
+        t = t + Interval
     size_all.pop(0)
     size_timeout.pop(0)
     # print size_all, size_timeout
