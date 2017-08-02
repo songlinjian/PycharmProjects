@@ -258,7 +258,7 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    # go through all files in a directory
+    # go through all links in Atlas
     for msm_id in udp_measurement_set:
         if msm_id in [8552432, 8552458]:
             continue

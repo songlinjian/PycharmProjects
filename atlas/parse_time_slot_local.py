@@ -9,11 +9,10 @@ Author : Davey@BII
 
 import json
 import sys
-import time
 from datetime import datetime
-import urllib2
 import gc
 import ssl
+import os
 
 
 # close the SSL verification
@@ -49,6 +48,7 @@ udp_measurement_set = [
 START = 1494219600
 END = 1495756799
 Interval = 7200
+Rate_gate =0.1
 
 # Variable definition
 Time_set = []
@@ -192,7 +192,7 @@ def build_measure(data, m):
 def timestamp2string(timeStamp):
     try:
         d = datetime.fromtimestamp(timeStamp)
-        str1 = d.strftime("%Y-%m-%d %H:%M:%S.%f")
+        str1 = d.strftime("%Y-%m-%d %H:%M:%S")
         # 2015-08-28 16:43:37.283000'
         return str1
     except Exception as e:
@@ -200,34 +200,21 @@ def timestamp2string(timeStamp):
         return ''
 
 
-def print_time_slot(url):
+def print_time_slot(path):
     global Num_m, Time_set, Rate_set
 
     # consider the exception of network failure and timeout
     timeout = 3
-    print "start to parse ", url
-    while timeout > 0:
-        try:
-            json_file = urllib2.urlopen(url).read()
-        except urllib2.HTTPError as e:
-            print 'HTTPError'
-            print 'Error code: ', e.code
-            print 'Error reason: ', e.reason
-        except urllib2.URLError as e:
-            print 'URLError'
-            print 'Error reason: ', e.reason
+    print "start to parse ", path
+    with open(path) as json_file:
+        # json.load() convert json string to python type
+        data = json.load(json_file)
+        if data[0]["proto"] == "TCP":
+            return
         else:
-            break
-        timeout = timeout - 1
-    if timeout < 0:
-        return
+            print "start to parse ", data[0]["msm_id"], data[0]["dst_addr"]
+            Num_m += 1
 
-    data = json.loads(json_file)
-    if data[0]["proto"] == "TCP":
-        print "Error : TCP was found"
-        return
-    else:
-        print "start to parse ", data[0]["msm_id"], data[0]["dst_addr"]
     # build the measurement
     m = Measurement(data[0]["msm_id"])
     build_measure(data, m)  # convert raw data into measure format
@@ -236,6 +223,7 @@ def print_time_slot(url):
     print("the number of prb_id: ", len(m.probe_info))
     print("the number of weak probe: ", len(m.weak_probes_list))
     print "the number of measurement", len(m.measure_list)
+
     # start to parse
     t = START
     i = 0
@@ -247,38 +235,59 @@ def print_time_slot(url):
         # probe_set
         if Num_m == 1:
             Time_set.append(timestamp2string(t))
-            Rate_set.append([[size, float('%.4f' % rate), m.measure_id]])
+            if rate > Rate_gate and size <1200 :
+                Rate_set.append([])
+            else:
+                Rate_set.append([[size, float('%.4f' % rate), m.measure_id]])
         else:
-            Rate_set[i].append([size, float('%.4f' % rate), m.measure_id])
+            if rate > Rate_gate and size <1200 :
+                pass
+            else:
+                Rate_set[i].append([size, float('%.4f' % rate), m.measure_id])
         i += 1
+        if i>150:
+            break
         t += Interval
     del m, data, json_file
     gc.collect()
+
 
 def main(argv=None):
     global Num_m, Time_set, Rate_set
     if argv is None:
         argv = sys.argv
 
-    # go through all links in Atlas
-    for msm_id in udp_measurement_set:
-        if msm_id in [8552432, 8552458,8552519,8552540]:
-            continue
-        else:
-            url = 'https://atlas.ripe.net/api/v2/measurements/%s/results/' \
-                  '?start=1494201600&stop=1495756799&format=json' % msm_id
-            Num_m += 1
-            print_time_slot(url)
-
+    data_home = unicode('E:\\工作\\Dev\\python\\Atlas\\bii\\data\\', "utf8")
+    # go through all files in a directory
+    for root, dirs, files in os.walk(data_home):
+        for filename in files:
+            path = data_home + filename
+            if int(
+                filter(
+                    str.isdigit,
+                    filename.encode('gbk'))) in [
+                8552432,
+                8552458,
+                8552519,
+                    8552540]:
+                continue
+            else:
+                print_time_slot(path)
     average = []
     for j in range(len(Rate_set)):
         summ = 0
         for i in Rate_set[j]:
             summ = summ + i[1]
-        average.append([i[0], float('%.4f' % (float(summ) / len(Rate_set[j])))])
+            if len(Rate_set[j]) == 0:
+                l = 0.01
+            else:
+                l = len(Rate_set[j])
+        average.append([i[0], float('%.4f' % (float(summ) / l))])
     print 'the number of available measurement: ', Num_m
     for i in range(len(Rate_set)):
+        # print Time_set[i], Rate_set[i], i, average[i][0], average[i][1]
         print Time_set[i], average[i][0], average[i][1]
+
 
 
 if __name__ == "__main__":
