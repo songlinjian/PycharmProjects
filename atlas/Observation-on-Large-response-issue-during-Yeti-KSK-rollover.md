@@ -162,11 +162,12 @@ For every tome slot(2 hours) around 66 probes sent queries to Yeti root servers.
 The following figure shows vividly the failure rate change during 1 KSK rollover and 2 ZSK rollovers (Note the monitoring was setup when two KSK were published). It experienced four periods: 2KSK+3ZSK, 1KSK+3ZSK, 1KSK+2ZSK, 1KSK+3ZSK.
 
 
-Figure 1  Failure rate change during Yeti KSK rollover
 
-<img src="Failure_rate_changes2.bmp" width="800x">
+
+<img src="Failure_rate_changes2.bmp" width="800x">````
+Figure 1  Failure rate change during Yeti KSK rollover
 
 ### Conclusion
 
-The monitoring result shows that statistically large packets will trigger higher failure rate (around 0.7%) due to IPv6 fragmentation issues, which accordingly increase probability of retries and TCP fallback. It should be noted that during the KSK rollover and other experience in Yeti testbed, no error report was spotted directly due to packet size problem (less than 1% likely to cause timeout). So it is should be further observed and evaluate the impact of large packets issue. To avoid less than 1% anomaly, we can consider is it worthwhile to take any measures to this issue? Does it sound like a plan to use stateful connection in the first place to transmit DNS like TCP or HTTP for queries causing large response, or [fragment the packets in the DNS layer](https://tools.ietf.org/html/draft-muks-dns-message-fragments-00)?.
+The monitoring result shows that statistically large packets will trigger higher failure rate (around 0.7%) due to IPv6 fragmentation issues, which accordingly increase probability of retries and TCP fallback. It should be noted that during the KSK rollover and other experience in Yeti testbed, no error report was spotted directly due to packet size problem (less than 1% likely to cause timeout). So it is should be further observed and evaluate the impact of large packets issue. To avoid less than 1% anomaly, we can consider is it worthwhile to take any measures to this issue? Does it sound like a plan to use stateful connection in the first place to transmit DNS like TCP or HTTP for queries causing large response, or [fragment the packets in the DNS layer](https://tools.ietf.org/html/draft-muks-dns-message-fragments-00)?
 
